@@ -1,30 +1,32 @@
-// use embedded_hal;
 use embedded_hal as hal;
-
-
 use hal::blocking::spi;
 use hal::digital::v2::OutputPin;
 use crate::registers;
+use crate::faults::{DrvResult, DrvFault};
 
-
-pub struct DRV8323<SPI, EN, CAL, FAULT> {
+/// DRV8323 driver
+pub struct DRV8323<SPI, CS, EN, CAL, FAULT> {
     spi: SPI,
+    chip_select_pin: CS,
     enable_pin: EN,
     calibration_pin: CAL,
     nfault_pin: FAULT,
     
 }
 
-impl<SPI, EN, CAL, FAULT, E, PinError> DRV8323<SPI, EN, CAL, FAULT> 
+impl<SPI, CS, EN, CAL, FAULT, SpiErr, PinErr> DRV8323<SPI, CS, EN, CAL, FAULT> 
 where 
-    SPI: spi::Transfer<u8, Error = E> + spi::Write<u8, Error = E>,
-    EN: OutputPin<Error = PinError>,
-    CAL: OutputPin<Error = PinError>,
-    FAULT: OutputPin<Error = PinError>,
+    SPI: spi::Transfer<u8, Error = SpiErr> + spi::Write<u8, Error = SpiErr>,
+    CS: OutputPin<Error = PinErr>,
+    EN: OutputPin<Error = PinErr>,
+    CAL: OutputPin<Error = PinErr>,
+    FAULT: OutputPin<Error = PinErr>,
 {
-    pub fn new(spi: SPI, enable: EN, cal: CAL, nfault: FAULT) -> Result<Self, E>{
+    /// Instantiates a new drv8323 from an SPI peripheral and four GPIO pins.
+    pub fn new(spi: SPI, cs: CS, enable: EN, cal: CAL, nfault: FAULT) -> Result<Self, SpiErr>{
         let drv = DRV8323{
             spi:spi,
+            chip_select_pin: cs,
             enable_pin: enable,
             calibration_pin: cal,
             nfault_pin: nfault,
@@ -38,5 +40,13 @@ where
     
     pub fn disable(&mut self){
         self.enable_pin.set_low().ok();
+    }
+
+    pub fn check_faults(&mut self) -> DrvResult{
+        let fs1 = registers::read_register(&mut self.spi, registers::DrvRegister::FaultStatus1);
+        let fs2 = registers::read_register(&mut self.spi, registers::DrvRegister::FaultStatus2);
+
+        let error: DrvFault;
+        Ok(())
     }
 }

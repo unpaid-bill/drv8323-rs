@@ -1,7 +1,8 @@
 use embedded_hal as hal;
 use hal::blocking::spi;
+use crate::faults::{DrvResult, Drv8323Error};
 
-enum DrvRegister{
+pub enum DrvRegister{
 
     FaultStatus1 = 0x00,
     FaultStatus2 = 0x01,
@@ -141,50 +142,72 @@ impl CSAControl {
     }
 }
 
-enum PWM_Mode {
+enum PwmMode {
     SixPin,
     ThreePin,
     OnePin,
 }
 
-fn write_register<SPI, E>(
+pub fn write_register<SPI, SpiError>(
     spi: &mut SPI,
     reg: DrvRegister,
     data: u16,
-) -> Result<(), E>
+) -> DrvResult
 where
-    SPI: spi::Transfer<u8, Error = E> + spi::Write<u8, Error = E>,
+    SPI: spi::Transfer<u8, Error = SpiError>,
 {
     // no implemented!!!!
     let mut transfer_buffer: [u8; 4];
     transfer_buffer = [0, 0, 0, 0];
-
+    
     // replaces contents of transfer_buffer 
     // with recieved data as it comes in
-    spi.transfer(
+    let r = spi.transfer(
         &mut transfer_buffer,
-    )?;
+    );
 
-    Ok(())
+    match r {
+        Ok(_) => {
+            return Ok(())
+        }
+        Err(e) => {
+            return Err(Drv8323Error::SpiErr)
+        }
+    }
+    
+    todo!();
 }
 
-fn read_register<SPI, E>(
+pub fn read_register<SPI, SpiError>(
     spi: &mut SPI,
     reg: DrvRegister,
-    data: u16,
-) -> Result<(), E>
+) -> DrvResult<u16>
 where
-    SPI: spi::Transfer<u8, Error = E> + spi::Write<u8, Error = E>,
+    SPI: spi::Transfer<u8, Error = SpiError>,
 {
-    // no implemented!!!!
-    let mut transfer_buffer: [u8; 4];
-    transfer_buffer = [0, 0, 0, 0];
-
+    let rw_flag = 0x01;
+    let MSB = (rw_flag << 7) | (reg.addr() << 6);
+    let mut transfer_buffer: [u8; 2];
+    transfer_buffer = [MSB, 0];
+    
     // replaces contents of transfer_buffer 
     // with recieved data as it comes in
-    spi.transfer(
+    let r = spi.transfer(
         &mut transfer_buffer,
-    )?;
+    );
 
-    Ok(())
+    todo!();
+    match r {
+        Ok(_) => {
+            let upper_byte = transfer_buffer[1] as u16;
+            let lower_byte = transfer_buffer[0] as u16;
+            let received: u16 = (upper_byte << 7) | lower_byte;
+            return Ok(received);
+
+        }
+        Err(e) => {
+            return Err(Drv8323Error::SpiErr);
+        }
+    }
+    
 }
