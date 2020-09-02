@@ -9,4 +9,4 @@ This driver allows you to:
 
 [`embedded-hal`]: https://github.com/rust-embedded/embedded-hal
 
-[status]: https://img.shields.io/badge/status-WIP-lightgrey
+[status-badge]: https://img.shields.io/badge/status-WIP-lightgrey
